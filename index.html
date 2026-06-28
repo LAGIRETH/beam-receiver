@@ -185,15 +185,14 @@
             try {
                 uiState('Retrieving routing matrices...', 'loading');
                 
-                // FIXED: Requesting with explicit poll constraints to fetch the cached configuration instantly
-                let offerSDP = "";
+                let b64Offer = "";
                 for (let i = 0; i < 10; i++) {
                     try {
                         const response = await fetch(`https://ntfy.sh/beam_${roomID}_offer/raw?poll=1&since=latest`);
                         if (response.ok) {
                             const text = await response.text();
                             if (text && text.trim() !== "") {
-                                offerSDP = text.trim();
+                                b64Offer = text.trim();
                                 break;
                             }
                         }
@@ -203,9 +202,12 @@
                     await new Promise(r => setTimeout(r, 1000));
                 }
 
-                if (!offerSDP) {
+                if (!b64Offer) {
                     throw new Error('Connection payload missing or expired on signaling broker');
                 }
+
+                // FIX: Decode the Base64 payload back to text containing raw lines (\r\n)
+                const offerSDP = atob(b64Offer);
 
                 uiState('Constructing transport tunnel...', 'loading');
 
@@ -267,10 +269,13 @@
 
                 uiState('Transmitting confirmation parameters...', 'loading');
 
+                // FIX: Base64 encode the Answer SDP so ntfy doesn't flatten its lines
+                const b64Answer = btoa(pc.localDescription.sdp);
+
                 await fetch(`https://ntfy.sh/beam_${roomID}_answer`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'text/plain' },
-                    body: pc.localDescription.sdp
+                    body: b64Answer
                 });
 
                 uiState('Awaiting connection verification...', 'loading');
