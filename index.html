@@ -81,8 +81,9 @@
             document.getElementById('status').textContent = 'Decompressing offer...';
 
             try {
-                // Decompress the offer
-                const offerSDP = await decompressSDP(compressedOffer);
+                // URL-decode first, then decompress
+                const decodedOffer = decodeURIComponent(compressedOffer);
+                const offerSDP = await decompressSDP(decodedOffer);
                 document.getElementById('status').textContent = 'Offer received. Establishing P2P connection...';
 
                 // Create WebRTC Peer Connection
