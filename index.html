@@ -185,30 +185,18 @@
             try {
                 uiState('Retrieving routing matrices...', 'loading');
                 
-                let b64Offer = "";
-                for (let i = 0; i < 10; i++) {
-                    try {
-                        const response = await fetch(`https://ntfy.sh/beam_${roomID}_offer/raw?poll=1&since=latest`);
-                        if (response.ok) {
-                            const text = await response.text();
-                            if (text && text.trim() !== "") {
-                                b64Offer = text.trim();
-                                break;
-                            }
-                        }
-                    } catch (e) {
-                        console.log("Retrying offer query step...");
-                    }
-                    await new Promise(r => setTimeout(r, 1000));
-                }
+                // FIXED: Simplified poll argument to reliably pull the cached target metadata
+                const response = await fetch(`https://ntfy.sh/beam_${roomID}_offer/raw?poll=1`);
+                if (!response.ok) throw new Error('Signaling broker unreachable');
+                
+                const text = await response.text();
+                const b64Offer = text.trim();
 
                 if (!b64Offer) {
                     throw new Error('Connection payload missing or expired on signaling broker');
                 }
 
-                // FIX: Decode the Base64 payload back to text containing raw lines (\r\n)
                 const offerSDP = atob(b64Offer);
-
                 uiState('Constructing transport tunnel...', 'loading');
 
                 const pc = new RTCPeerConnection({
@@ -269,7 +257,6 @@
 
                 uiState('Transmitting confirmation parameters...', 'loading');
 
-                // FIX: Base64 encode the Answer SDP so ntfy doesn't flatten its lines
                 const b64Answer = btoa(pc.localDescription.sdp);
 
                 await fetch(`https://ntfy.sh/beam_${roomID}_answer`, {
