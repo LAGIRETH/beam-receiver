@@ -350,7 +350,7 @@ func handleFileChunk(data []byte) {
 	pathLen := binary.BigEndian.Uint32(data[0:4])
 	offset := binary.BigEndian.Uint32(data[4:8])
 	isLast := data[8] == 1
-	pathEnd := 9 + pathLen
+	pathEnd := int(9 + pathLen)
 	
 	if len(data) < pathEnd {
 		fmt.Println("[ERROR] Invalid packet size: path exceeds data length")
