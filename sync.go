@@ -1,6 +1,10 @@
 package main
 
 import (
+	"crypto/aes"
+	"crypto/cipher"
+	"crypto/rand"
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/binary"
 	"encoding/json"
@@ -15,6 +19,7 @@ import (
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/pion/webrtc/v4"
+	"golang.org/x/crypto/pbkdf2"
 )
 
 // SyncMessage represents a sync command
@@ -32,6 +37,7 @@ var (
 	syncLocalFolder    string
 	syncMutex          sync.Mutex
 	sendingFiles       = make(map[string]bool)
+	syncGCM            cipher.AEAD // NEW: Global cipher for sync encryption
 )
 
 func runBeamSync() {
@@ -47,6 +53,36 @@ func runBeamSync() {
 
 	var choice string
 	fmt.Scanln(&choice)
+
+	// --- NEW: Password Prompt and AES-256-GCM Cipher Initialization ---
+	fmt.Println("\n┌─ ENCRYPTION PROTOCOL ─────────────────────────────────────────┐")
+	fmt.Print("│ Enter a strong password to encrypt synced files:\n│ > ")
+	var password string
+	fmt.Scanln(&password)
+	if password == "" {
+		fmt.Println("[ERROR] Password cannot be empty. Aborting.")
+		return
+	}
+	
+	// Derive a 32-byte AES-256 key from the password using PBKDF2
+	// The salt MUST exactly match the salt used in the frontend JavaScript.
+	salt := []byte("beam-secure-salt-2024")
+	key := pbkdf2.Key([]byte(password), salt, 100000, 32, sha256.New)
+
+	block, errAes := aes.NewCipher(key)
+	if errAes != nil {
+		fmt.Printf("[ERROR] Cipher initialization failed: %v\n", errAes)
+		return
+	}
+	var errGcm error
+	syncGCM, errGcm = cipher.NewGCM(block)
+	if errGcm != nil {
+		fmt.Printf("[ERROR] GCM initialization failed: %v\n", errGcm)
+		return
+	}
+	fmt.Println("│ ✓ AES-256-GCM Encryption Engine Armed and Ready.")
+	fmt.Println("└─────────────────────────────────────────────────────────────┘")
+	// ----------------------------------------------------------------------
 
 	if choice == "1" {
 		initiateSync()
@@ -315,8 +351,29 @@ func handleFileChunk(data []byte) {
 	offset := binary.BigEndian.Uint32(data[4:8])
 	isLast := data[8] == 1
 	pathEnd := 9 + pathLen
+	
+	if len(data) < pathEnd {
+		fmt.Println("[ERROR] Invalid packet size: path exceeds data length")
+		return
+	}
+
 	path := string(data[9:pathEnd])
-	chunkData := data[pathEnd:]
+	encryptedChunk := data[pathEnd:]
+
+	// NEW: Decrypt the chunk data
+	if len(encryptedChunk) < syncGCM.NonceSize() {
+		fmt.Println("[ERROR] Invalid encrypted chunk size: too short for nonce")
+		return
+	}
+	
+	nonce := encryptedChunk[:syncGCM.NonceSize()]
+	ciphertext := encryptedChunk[syncGCM.NonceSize():]
+	
+	chunkData, err := syncGCM.Open(nil, nonce, ciphertext, nil)
+	if err != nil {
+		fmt.Printf("[ERROR] Decryption failed for chunk %s: %v\n", path, err)
+		return
+	}
 
 	fullPath := filepath.Join(syncLocalFolder, path)
 
@@ -335,10 +392,10 @@ func handleFileChunk(data []byte) {
 	// Seek to offset
 	file.Seek(int64(offset), 0)
 
-	// Write chunk
+	// Write decrypted chunk
 	file.Write(chunkData)
 
-	fmt.Printf("[SYNC] Received chunk: %s (offset: %d, size: %d, last: %v)\n",
+	fmt.Printf("[SYNC] 🔓 Received & Decrypted chunk: %s (offset: %d, size: %d, last: %v)\n",
 		path, offset, len(chunkData), isLast)
 
 	if isLast {
@@ -458,16 +515,24 @@ func sendFile(relPath, fullPath string) {
 	defer file.Close()
 
 	// Send file in chunks
-	buffer := make([]byte, 64*1024) // 64KB chunks
+	buffer := make([]byte, 16*1024) // REDUCED to 16KB to accommodate encryption overhead
 	offset := int64(0)
 	chunkNum := 0
 
 	for {
 		n, err := file.Read(buffer)
 		if n > 0 {
+			// NEW: Encrypt the chunk data before sending
+			nonce := make([]byte, syncGCM.NonceSize())
+			if _, errNonce := io.ReadFull(rand.Reader, nonce); errNonce != nil {
+				fmt.Printf("[ERROR] Nonce generation failed: %v\n", errNonce)
+				return
+			}
+			encryptedChunk := syncGCM.Seal(nonce, nonce, buffer[:n], nil)
+
 			// Build chunk packet
 			pathBytes := []byte(relPath)
-			packetSize := 9 + len(pathBytes) + n
+			packetSize := 9 + len(pathBytes) + len(encryptedChunk)
 			packet := make([]byte, packetSize)
 
 			// Header
@@ -484,8 +549,8 @@ func sendFile(relPath, fullPath string) {
 			// Path
 			copy(packet[9:], pathBytes)
 
-			// Data
-			copy(packet[9+len(pathBytes):], buffer[:n])
+			// Data (Now Encrypted)
+			copy(packet[9+len(pathBytes):], encryptedChunk)
 
 			// Send
 			if err := syncDataChannel.Send(packet); err != nil {
@@ -496,7 +561,7 @@ func sendFile(relPath, fullPath string) {
 			offset += int64(n)
 			chunkNum++
 
-			fmt.Printf("[SEND] Chunk %d: %s (offset: %d, size: %d)\n",
+			fmt.Printf("[SEND] 🔒 Chunk %d: %s (offset: %d, size: %d)\n",
 				chunkNum, relPath, offset-int64(n), n)
 
 			// Flow control
