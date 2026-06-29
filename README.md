@@ -56,3 +56,9 @@ Keep it open. Keep it free.
 *  README.md and TUTORIAL.TXT is written by AI cause i am a devoloper not a proffessional writer.
 * For maximum security, self-host the beam frontend and change the ntfy.sh signaling endpoint to your own private WebSocket server.
 *  This is open source so remember tht if someone other sends u smth like my own codes other then my repo I wont be responsible for it. Cause they could change or tweak the code to their liking.
+
+ ###SECURITY
+ * **Direct P2P Transport: Files bypass corporate servers entirely, traveling straight from browser to browser so no third party can ever log, track, or scan your data.
+* **Uncrackable Entropy Fortress: Traffic is secured with 128 bits of entropy, creating over 10^38 mathematical combinations that would take the world's fastest supercomputers billions of years to brute-force.
+* **AES-256-GCM Zero-Knowledge Privacy: Your password creates a local, tamper-proof shield before data leaves your device, keeping your files completely invisible and protected against mid-flight modification.
+ 
