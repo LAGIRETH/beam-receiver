@@ -1,0 +1,112 @@
+================================================================
+                    BEAM - OFFICIAL TUTORIAL
+================================================================
+
+SECTION 1: HOW TO DOWNLOAD AND INSTALL
+----------------------------------------------------------------
+1. Prerequisites:
+   - You must have Go (Golang) installed on your computer.
+   - Download it from: https://go.dev/dl/
+
+2. Get the Code:
+   - Clone the repository:
+     git clone https://github.com/LAGIRETH/beam.git
+   - OR download the ZIP file from GitHub and extract it.
+   - This gives you: main.go, sync.go, go.mod, and go.sum.
+
+3. Install Dependencies:
+   Open your terminal (PowerShell/CMD) in the project folder and run:
+   
+   go get github.com/pion/webrtc/v4
+   go get github.com/fsnotify/fsnotify
+
+4. Build the Executable:
+   Run this command to create the beam.exe file:
+   
+   go build -o beam.exe
+
+
+5. Set Up the Web Receiver (GitHub Pages):
+   (This is for the beam_control.html file)
+   
+   a. Go to GitHub and create a new repository named "beam-receiver".
+   b. Create a new file in that repository named "index.html".
+   c. Copy the code from "beam_control.html" in this project and paste it into "index.html".
+   d. Go to Settings -> Pages.
+   e. Under "Source", select "main" branch and click Save.
+   f. Wait 1 minute. Your site is now live at: 
+      https://YOUR-USERNAME.github.io/beam-receiver/
+   g. IMPORTANT: Open main.go in a text editor and replace the GitHub Pages URL with your new link.
+
+
+================================================================
+SECTION 2: HOW TO USE BEAM
+----------------------------------------------------------------
+To start the program, simply run:
+   .\beam.exe
+
+You will see a menu with 3 options. Choose the number and press Enter.
+
+
+OPTION [1]:  FILE BEAM TRANSPORTER
+(Use this to send massive files to anyone without them installing anything)
+
+SENDER (You):
+1. Select option [1].
+2. Enter the exact path to the file you want to send (e.g., C:\video.mp4).
+3. The terminal will generate a URL.
+4. Send this URL to your friend via Discord, Email, etc.
+5. Wait. The terminal will show real-time speed and progress once they connect.
+
+RECEIVER (Your Friend):
+1. Click the URL you sent them.
+2. A dark-mode webpage will open. Click "Allocate Local Disk Space".
+3. Choose where to save the file on their computer.
+4. The download will start instantly at P2P speeds.
+
+
+OPTION [2]:  SECURE PROXY TUNNEL
+(Use this to show your localhost website to someone across the world)
+
+HOST (You):
+1. Make sure your local server is running (e.g., React on port 3000).
+2. Select option [2].
+3. Enter your local port number (e.g., 3000).
+4. Copy the generated URL and send it to your client.
+
+CLIENT (Your Friend):
+1. Open the URL you sent them.
+2. They will see "Proxy data pipeline open."
+3. In their browser address bar, they type: http://127.0.0.1:3000
+4. They will see YOUR local website running on YOUR computer.
+
+
+OPTION [3]: 🔄 BEAM SYNC
+(Use this to sync folders between two different computers)
+
+PC-A (Initiator):
+1. Create a folder you want to sync (e.g., C:\SyncFolder).
+2. Select option [3], then select [1] to Initiate.
+3. Enter the folder path.
+4. Copy the "Room ID" generated and send it to PC-B.
+
+PC-B (Joiner):
+1. Create a folder where you want to receive the files (e.g., D:\MySync).
+2. Select option [3], then select [2] to Join.
+3. Enter your folder path.
+4. Paste the Room ID you received from PC-A.
+
+TESTING THE SYNC:
+- Create a text file in PC-A's folder. It will instantly appear in PC-B's folder.
+- Delete a file on PC-B. It will instantly delete on PC-A.
+
+
+================================================================
+TROUBLESHOOTING
+----------------------------------------------------------------
+- "Connection state changed: closed": Your firewall or network might be blocking WebRTC. Try switching to a mobile hotspot to test.
+- "Transfer stuck at 0.1%": Ensure you are using the latest version of the code (V6.2+), which includes the fixed flow-control logic.
+- "Proxy not working": Make sure your local server is actually running and you typed the correct port number.
+- "404 Not Found on Receiver Link": Make sure you named your HTML file "index.html" in your GitHub repository, not "beam_control.html".
+
+================================================================
