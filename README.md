@@ -60,5 +60,5 @@ Keep it open. Keep it free.
  ###SECURITY
  * **Direct P2P Transport: Files bypass corporate servers entirely, traveling straight from browser to browser so no third party can ever log, track, or scan your data.
 * **Uncrackable Entropy Fortress: Traffic is secured with 128 bits of entropy, creating over 10^38 mathematical combinations that would take the world's fastest supercomputers billions of years to brute-force.
-* **AES-256-GCM Zero-Knowledge Privacy: Your password creates a local, tamper-proof shield before data leaves your device, keeping your files completely invisible and protected against mid-flight modification.
+* **AES-256-GCM Zero-Knowledge Privacy: This password creates a local, tamper-proof shield before data leaves your device, keeping your files completely invisible and protected against mid-flight modification.
  
